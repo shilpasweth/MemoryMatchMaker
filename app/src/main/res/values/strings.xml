@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">MemoryMatchMaker</string>
+    <string name="title_activity_start_page">StartPage</string>
 </resources>

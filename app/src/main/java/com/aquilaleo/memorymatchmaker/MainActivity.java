@@ -42,12 +42,20 @@ public class MainActivity extends AppCompatActivity {
     int rowSize = 4;
     int columnSize = 3;
 
+    int cardCount = 52;
+    int royalBonus = 1;
+    int elementBonus = 0;
+
     int cardHeight;
     int cardWidth;
 
     TableLayout board;
+    ImageView cardDeckView;
+    ToggleButton royalSlotView;
 
     int score = 0;
+
+    Boolean gameOver = false;
 
     int backDrawables[] = {R.drawable.card_back_ace
             ,R.drawable.card_back_two
@@ -86,11 +94,16 @@ public class MainActivity extends AppCompatActivity {
     static int EARTH = 2;
     static int AIR = 3;
 
+
+
+    int enemyElement[] = {WATER,FIRE,AIR,EARTH};
+
     Card cardDeck[][] = new Card[4][13];
     Boolean cardDealt[][] = new Boolean[4][13];
     final Card[][] boardCards= new Card[rowSize][columnSize];
     ArrayList<View> selectedPositions = new ArrayList<View>();
     ArrayList<View> cardSlots = new ArrayList<View>();
+    ArrayList<Card> dealtRoyals = new ArrayList<Card>();
 
     void setCardElements(){
         for(int i=0;i<4;i++){
@@ -103,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
                 else{
                     front = frontDrawables[i+(j%10)*4+4];
                     back = backDrawables[10];
+                    Log.d("PicTest","i: "+i+", j: "+j+", front: "+i+(j%10)*4+4);
                 }
                 cardDeck[i][j] = new Card(i, j, front, back);
                 cardDeck[i][j].scaledFrontDrawable = createScaledDrawable(cardDeck[i][j].frontDrawable);
@@ -209,43 +223,208 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    void cardClick(View v){
+    public void dealCards(final View view){
+        Log.d("TestingCards","Deal1");
+        if(isAllCardsDealt()){
+            Toast.makeText(MainActivity.this, "Game ended with Score: "+score, Toast.LENGTH_SHORT).show();
+            gameOver = true;
+            return;
+        }
+        Log.d("TestingCards","Deal2");
+        int a = (int)((Pair)(view.getTag())).first;
+        int b = (int)((Pair)(view.getTag())).second;
+
+        //Replace card1
+        Random rand = new Random();
+        int p = rand.nextInt(4);
+        int q = rand.nextInt(10);
+
+        while(cardDealt[p][q]||cardDeck[p][q].number>=10){
+            q++;
+            p+=q/13;
+            p%=4;
+            q%=13;
+
+            if(cardDeck[p][q].number>=10&&!cardDealt[p][q]){
+                dealtRoyals.add(cardDeck[p][q]);
+                cardDealt[p][q] = true;
+                Drawable royalDrawable = dealtRoyals.get(dealtRoyals.size()-1).scaledFrontDrawable;
+                flipAnimation(cardDeckView, royalDrawable);
+                flipAnimation(cardDeckView, createScaledDrawable(R.drawable.card_back));
+                flipAnimation(royalSlotView, royalDrawable);
+                cardCount--;
+                if(isAllCardsDealt()){
+                    Toast.makeText(MainActivity.this, "Game ended with Score: "+score, Toast.LENGTH_SHORT).show();
+                    gameOver = true;
+                    return;
+                }
+            }
+        }
+
+        final Drawable newDrawableFront = cardDeck[p][q].scaledFrontDrawable;
+        final Drawable newDrawableBack = cardDeck[p][q].scaledBackDrawable;
+        cardDealt[p][q] = true;
+        boardCards[a][b] = cardDeck[p][q];
+
+        Runnable r = new Runnable() {
+            @Override
+            public void run(){
+                flipAnimation(cardDeckView, newDrawableFront);
+            }
+        };
+
+        Handler h = new Handler();
+        h.postDelayed(r, 1000);
+
+        r = new Runnable() {
+            @Override
+            public void run(){
+                //view.setBackgroundDrawable(newDrawableFront);
+                flipAnimation(view, newDrawableFront);
+
+            }
+        };
+        h.postDelayed(r, 1000);
+        r = new Runnable() {
+            @Override
+            public void run(){
+                flipAnimation(view,newDrawableBack);
+            }
+        };
+        h.postDelayed(r, 3000);
+        Log.d("TestingCards","Deal4");
+    }
+
+    void cardClick(final View v){
 
         int row = (int)((Pair)v.getTag()).first;
         int col = (int)((Pair)v.getTag()).second;
         //v.setBackgroundDrawable(boardCards[row][col].scaledFrontDrawable);
         flipAnimation(v,boardCards[row][col].scaledFrontDrawable);
+
+
         singleDisableTouch(row, col);
         selectedPositions.add(v);
 
         if(selectedPositions.size()==2){
+
             disableTouch();
-            Runnable r = new Runnable() {
+            final View view1 = selectedPositions.get(0);
+            int a = (int)((Pair)(view1.getTag())).first;
+            int b = (int)((Pair)(view1.getTag())).second;
+            Card card1 = boardCards[a][b];
+
+            final View view2 = selectedPositions.get(1);
+            int c = (int)((Pair)(view2.getTag())).first;
+            int d = (int)((Pair)(view2.getTag())).second;
+            Card card2 = boardCards[c][d];
+
+            //element bonus
+            if(card1.element == card2.element){
+                elementBonus = 5;
+            }
+            else if(card1.element == enemyElement[card2.element]){
+                elementBonus = -5;
+            }
+            else{
+                elementBonus = 0;
+            }
+            //Toast.makeText(MainActivity.this, "Element Bonus: "+elementBonus, Toast.LENGTH_SHORT).show();
+            TextView elementView = findViewById(R.id.elementBonusView);
+            elementView.setText("Element Bonus = "+elementBonus);
+            Log.d("TestingCards1","Clicked "+((Pair)v.getTag()).first+" "+((Pair)v.getTag()).second);
+            //royal bonus
+            if(dealtRoyals.size()<=0) {
+                royalBonus = 1;
+            }
+            else{
+                Card royal = dealtRoyals.get(dealtRoyals.size()-1);
+                if(card1.element == royal.element && card2.element == royal.element){
+                    royalBonus = 10 + (royal.number%10);
+                }
+                else if(card1.element == royal.element || card2.element == royal.element){
+                    royalBonus = 5 + (royal.number%10)*2;
+                    if(card1.element == enemyElement[royal.element] || card2.element == enemyElement[royal.element]){
+                        royalBonus = 2 + (royal.number%10);
+                    }
+                }
+                else if(card1.element == enemyElement[royal.element] || card2.element == enemyElement[royal.element]){
+                    royalBonus = -5 - (royal.number%10);
+                }
+                else{
+                    royalBonus = 1;
+                }
+                dealtRoyals.remove(dealtRoyals.size()-1);
+                if(dealtRoyals.size() <= 0){
+                    royalSlotView.setBackgroundDrawable(createScaledDrawable(R.drawable.royal_slot));
+                }
+                else{
+                    flipAnimation(royalSlotView,dealtRoyals.get(dealtRoyals.size()-1).scaledFrontDrawable);
+                }
+            }
+            //Toast.makeText(MainActivity.this, "Royal Bonus: "+royalBonus, Toast.LENGTH_SHORT).show();
+            TextView royalView = findViewById(R.id.royalBonusView);
+            royalView.setText("Royal Bonus = "+royalBonus);
+            Log.d("TestingCards2","Clicked "+((Pair)v.getTag()).first+" "+((Pair)v.getTag()).second);
+
+            int base = 10-Math.abs(card1.number-card2.number);
+            TextView baseView = findViewById(R.id.baseScoreView);
+            baseView.setText("Base Score = "+base);
+
+            int addit = base*royalBonus+elementBonus;
+
+            score+= addit;
+
+            //Toast.makeText(MainActivity.this, "Score: "+score, Toast.LENGTH_SHORT).show();
+            TextView scoreView = findViewById(R.id.scoreView);
+            scoreView.setText("Score = "+score+"("+addit+")");
+
+            Log.d("TestingCards3","Clicked "+((Pair)v.getTag()).first+" "+((Pair)v.getTag()).second);
+
+            Runnable run = new Runnable() {
                 @Override
                 public void run(){
-                    for(int i=0;i<2;i++){
-                        View v = selectedPositions.get(i);
-                        int a = (int)((Pair)(v.getTag())).first;
-                        int b = (int)((Pair)(v.getTag())).second;
-                        //v.setBackgroundDrawable(boardCards[a][b].scaledBackDrawable);
-                        flipAnimation(v,boardCards[a][b].scaledBackDrawable);
-                    }
-                    selectedPositions.clear();
-                    enableTouch();
+                    dealCards(view1);
                 }
             };
 
-            Handler h = new Handler();
-            h.postDelayed(r, 5000);
+            Handler hand = new Handler();
+            hand.postDelayed(run, 1000);
+
+            run = new Runnable() {
+                @Override
+                public void run(){
+                    dealCards(view2);
+                }
+            };
+            hand.postDelayed(run, 4000);
+
+            if(!gameOver){
+
+                selectedPositions.clear();
+                run = new Runnable() {
+                    @Override
+                    public void run(){
+                        flipAnimation(cardDeckView, createScaledDrawable(R.drawable.card_back));
+                    }
+                };
+                hand.postDelayed(run, 6000);
+                enableTouch();
+            }
+
+
+
+
+
         }
 
+
+
+
+        Log.d("TestingCards7","Clicked "+((Pair)v.getTag()).first+" "+((Pair)v.getTag()).second);
         //Toast.makeText(MainActivity.this, "Clicked "+((Pair)v.getTag()).first+" "+((Pair)v.getTag()).second, Toast.LENGTH_SHORT).show();
 
-
-
     }
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -255,9 +434,11 @@ public class MainActivity extends AppCompatActivity {
 
         board = (TableLayout) findViewById(R.id.board);
         ConstraintLayout constraintLayout = findViewById(R.id.constraintLayout);
-
-        ImageView cardDeckView = (ImageView) findViewById(R.id.cardDeckView);
-        ToggleButton royalSlotView = (ToggleButton) findViewById(R.id.royalSlotView);
+        cardDeckView = (ImageView) findViewById(R.id.cardDeckView);
+        royalSlotView = (ToggleButton) findViewById(R.id.royalSlotView);
+        royalSlotView.setText(null);
+        royalSlotView.setTextOn(null);
+        royalSlotView.setTextOff(null);
 
         //Get screen dimensions
         setScreenDim();
@@ -270,6 +451,7 @@ public class MainActivity extends AppCompatActivity {
         cardDeckView.setBackgroundDrawable(createScaledDrawable(R.drawable.card_back));
         royalSlotView.setLayoutParams(layoutParams);
         royalSlotView.setBackgroundDrawable(createScaledDrawable(R.drawable.royal_slot));
+        royalSlotView.setClickable(false);
 
         setCardElements();
 
@@ -286,10 +468,13 @@ public class MainActivity extends AppCompatActivity {
                 int a = r.nextInt(4);
                 int b = r.nextInt(10);
 
+                int inita = a;
+                int initb =b;
+
                 while(cardDealt[a][b]){
-                    a++;
-                    a%=4;
                     b++;
+                    a+=b/10;
+                    a%=4;
                     b%=10;
                 }
 
@@ -324,6 +509,8 @@ public class MainActivity extends AppCompatActivity {
             board.addView(row,i);
         }
 
+        cardCount-=12;
+
         disableTouch();
         Runnable r = new Runnable() {
             @Override
@@ -334,7 +521,7 @@ public class MainActivity extends AppCompatActivity {
         };
 
         Handler h = new Handler();
-        h.postDelayed(r, 10000);
+        h.postDelayed(r, 5000);
 
     }
 }

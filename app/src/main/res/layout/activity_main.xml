@@ -26,10 +26,38 @@
             android:contentDescription="card_back" />
 
 
-        <Space
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1" />
+            android:id="@+id/scores"
+            android:orientation="vertical"
+            android:padding="2dp"
+            android:layout_weight="1" >
+
+            <TextView
+                android:id="@+id/baseScoreView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Base Score" />
+
+            <TextView
+                android:id="@+id/elementBonusView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Element Bonus" />
+
+            <TextView
+                android:id="@+id/royalBonusView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Royal Bonus" />
+
+            <TextView
+                android:id="@+id/scoreView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Score" />
+        </LinearLayout>
 
         <ToggleButton
             android:id="@+id/royalSlotView"
