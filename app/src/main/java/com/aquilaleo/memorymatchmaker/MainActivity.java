@@ -1,5 +1,6 @@
 package com.aquilaleo.memorymatchmaker;
 
+import android.animation.Animator;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
@@ -9,6 +10,7 @@ import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.Pair;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -134,6 +136,34 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    void frontFlipAll(){
+        for(int i=0;i<4;i++){
+            for(int j=0;i<3;j++){
+                cardSlots.get(i*(3)+j).setBackgroundDrawable(boardCards[i][j].scaledFrontDrawable);
+            }
+        }
+    }
+
+    void backFlipAll(){
+        for(int i=0;i<4;i++){
+            for(int j=0;j<3;j++){
+                Log.d("MainActivity","i: "+i+", j: "+j+", index: "+(i*3+j));
+                //cardSlots.get(i*3+j).setBackgroundDrawable(boardCards[i][j].scaledBackDrawable);
+                flipAnimation(cardSlots.get(i*3+j),boardCards[i][j].scaledBackDrawable);
+            }
+        }
+    }
+
+    public void singleDisableTouch(int row, int col) {
+        int i = row*(3)+col;
+        cardSlots.get(i).setClickable(false);
+    }
+
+    public void singleEnableTouch(int row, int col) {
+        int i = row*(3)+col;
+        cardSlots.get(i).setClickable(true);
+    }
+
     public void disableTouch() {
         for(int i=0; i<cardSlots.size();i++){
             cardSlots.get(i).setClickable(false);
@@ -146,18 +176,44 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void flipAnimation(final View iv, final Drawable drawable){
+        iv.setRotationY(0f);
+        iv.animate().rotationY(90f).setListener(new Animator.AnimatorListener()
+        {
+
+            @Override
+            public void onAnimationStart(Animator animation)
+            {
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation)
+            {
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation)
+            {
+                iv.setBackgroundDrawable(drawable);
+                iv.setRotationY(270f);
+                iv.animate().rotationY(360f).setListener(null);
+
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation)
+            {
+            }
+        });
+    }
+
     void cardClick(View v){
+
         int row = (int)((Pair)v.getTag()).first;
         int col = (int)((Pair)v.getTag()).second;
+        v.setBackgroundDrawable(boardCards[row][col].scaledFrontDrawable);
+        singleDisableTouch(row, col);
         selectedPositions.add(v);
-
-        Toast.makeText(MainActivity.this, "Clicked "+((Pair)v.getTag()).first+" "+((Pair)v.getTag()).second, Toast.LENGTH_SHORT).show();
-        if(((ToggleButton)v).isChecked()){
-            v.setBackgroundDrawable(boardCards[row][col].scaledFrontDrawable);
-        }
-        else{
-            v.setBackgroundDrawable(boardCards[row][col].scaledBackDrawable);
-        }
 
         if(selectedPositions.size()==2){
             disableTouch();
@@ -178,6 +234,11 @@ public class MainActivity extends AppCompatActivity {
             Handler h = new Handler();
             h.postDelayed(r, 5000);
         }
+
+        //Toast.makeText(MainActivity.this, "Clicked "+((Pair)v.getTag()).first+" "+((Pair)v.getTag()).second, Toast.LENGTH_SHORT).show();
+
+
+
     }
 
 
@@ -209,13 +270,13 @@ public class MainActivity extends AppCompatActivity {
             for(int j = 0; j<columnSize; j++){
                 Random r = new Random();
                 int a = r.nextInt(4);
-                int b = r.nextInt(13);
+                int b = r.nextInt(10);
 
                 while(cardDealt[a][b]){
                     a++;
                     a%=4;
                     b++;
-                    b%=13;
+                    b%=10;
                 }
 
                 boardCards[i][j] = cardDeck[a][b];
@@ -227,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
                 ToggleButton card = new ToggleButton(this);
                 card.setLayoutParams(new FrameLayout.LayoutParams(cardWidth,cardHeight));
 
-                card.setBackgroundDrawable(boardCards[i][j].scaledBackDrawable);
+                card.setBackgroundDrawable(boardCards[i][j].scaledFrontDrawable);
                 card.setText(null);
                 card.setTextOn(null);
                 card.setTextOff(null);
@@ -248,6 +309,17 @@ public class MainActivity extends AppCompatActivity {
 
             board.addView(row,i);
         }
+        disableTouch();
+        Runnable r = new Runnable() {
+            @Override
+            public void run(){
+                backFlipAll();
+                enableTouch();
+            }
+        };
+
+        Handler h = new Handler();
+        h.postDelayed(r, 10000);
 
     }
 }
