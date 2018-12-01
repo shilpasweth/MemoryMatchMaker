@@ -21,6 +21,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -139,7 +140,8 @@ public class MainActivity extends AppCompatActivity {
     void frontFlipAll(){
         for(int i=0;i<4;i++){
             for(int j=0;i<3;j++){
-                cardSlots.get(i*(3)+j).setBackgroundDrawable(boardCards[i][j].scaledFrontDrawable);
+                //cardSlots.get(i*(3)+j).setBackgroundDrawable(boardCards[i][j].scaledFrontDrawable);
+                flipAnimation(cardSlots.get(i*3+j),boardCards[i][j].scaledFrontDrawable);
             }
         }
     }
@@ -211,7 +213,8 @@ public class MainActivity extends AppCompatActivity {
 
         int row = (int)((Pair)v.getTag()).first;
         int col = (int)((Pair)v.getTag()).second;
-        v.setBackgroundDrawable(boardCards[row][col].scaledFrontDrawable);
+        //v.setBackgroundDrawable(boardCards[row][col].scaledFrontDrawable);
+        flipAnimation(v,boardCards[row][col].scaledFrontDrawable);
         singleDisableTouch(row, col);
         selectedPositions.add(v);
 
@@ -224,7 +227,8 @@ public class MainActivity extends AppCompatActivity {
                         View v = selectedPositions.get(i);
                         int a = (int)((Pair)(v.getTag())).first;
                         int b = (int)((Pair)(v.getTag())).second;
-                        v.setBackgroundDrawable(boardCards[a][b].scaledBackDrawable);
+                        //v.setBackgroundDrawable(boardCards[a][b].scaledBackDrawable);
+                        flipAnimation(v,boardCards[a][b].scaledBackDrawable);
                     }
                     selectedPositions.clear();
                     enableTouch();
@@ -250,12 +254,22 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         board = (TableLayout) findViewById(R.id.board);
+        ConstraintLayout constraintLayout = findViewById(R.id.constraintLayout);
+
+        ImageView cardDeckView = (ImageView) findViewById(R.id.cardDeckView);
+        ToggleButton royalSlotView = (ToggleButton) findViewById(R.id.royalSlotView);
 
         //Get screen dimensions
         setScreenDim();
 
-        cardHeight = (int)(screenHeight/(float)(rowSize+1));
+        cardHeight = (int)(screenHeight/(float)(rowSize+2));
         cardWidth = (int)((cardHeight*9)/16.0);
+
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(cardWidth, cardHeight);
+        cardDeckView.setLayoutParams(layoutParams);
+        cardDeckView.setBackgroundDrawable(createScaledDrawable(R.drawable.card_back));
+        royalSlotView.setLayoutParams(layoutParams);
+        royalSlotView.setBackgroundDrawable(createScaledDrawable(R.drawable.royal_slot));
 
         setCardElements();
 
@@ -292,8 +306,8 @@ public class MainActivity extends AppCompatActivity {
                 card.setText(null);
                 card.setTextOn(null);
                 card.setTextOff(null);
-                card.setHeight(32);
-                card.setWidth(18);
+                //card.setHeight(32);
+                //card.setWidth(18);
                 card.setTag(new Pair(i,j));
                 card.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
@@ -309,6 +323,7 @@ public class MainActivity extends AppCompatActivity {
 
             board.addView(row,i);
         }
+
         disableTouch();
         Runnable r = new Runnable() {
             @Override
